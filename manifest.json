@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Gemini 翻訳",
+  "version": "1.0.0",
+  "description": "右クリックで選択したテキストをGeminiで翻訳します。",
+  "permissions": [
+    "contextMenus",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "dist/background.js"
+  },
+  "action": {
+    "default_title": "Gemini 翻訳"
+  }
+}
