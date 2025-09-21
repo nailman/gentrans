@@ -21,7 +21,7 @@ const chatgptAzureApiVersionInput = document.getElementById("chatgpt-azure-api-v
 const systemPromptInput = document.getElementById("system-prompt") as HTMLTextAreaElement;
 const resetSystemPromptButton = document.getElementById("reset-system-prompt") as HTMLButtonElement;
 const doNotTranslateProperNounsCheckbox = document.getElementById("do-not-translate-proper-nouns") as HTMLInputElement;
-
+const includePageContentCheckbox = document.getElementById("include-page-content") as HTMLInputElement;
 
 
 function updateChatGPTOptionsVisibility() {
@@ -53,6 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "chatgptAzureApiVersion",
     "systemPrompt",
     "doNotTranslateProperNouns",
+    "includePageContent",
   ], (result) => {
     if (result.geminiApiKey) {
       apiKeyInput.value = result.geminiApiKey;
@@ -91,6 +92,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (result.doNotTranslateProperNouns !== undefined) {
       doNotTranslateProperNounsCheckbox.checked = result.doNotTranslateProperNouns;
+    }
+    if (result.includePageContent !== undefined) {
+      includePageContentCheckbox.checked = result.includePageContent;
     }
     updateChatGPTOptionsVisibility();
   });
@@ -152,6 +156,9 @@ saveButton.addEventListener("click", () => {
 
   const doNotTranslateProperNouns = doNotTranslateProperNounsCheckbox.checked;
   settings.doNotTranslateProperNouns = doNotTranslateProperNouns;
+
+  const includePageContent = includePageContentCheckbox.checked;
+  settings.includePageContent = includePageContent;
 
   chrome.storage.local.set(settings, () => {
     statusDiv.textContent = "設定を保存しました。";
