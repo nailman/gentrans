@@ -18,6 +18,19 @@
     <label for="api-key">Gemini API Key</label>
     <input type="password" id="api-key">
   </div>
+
+  <div class="form-group">
+    <label>翻訳エンジンを選択:</label>
+    <input type="radio" id="engine-gemini" name="translation-engine" value="gemini" checked>
+    <label for="engine-gemini">Gemini</label>
+    <input type="radio" id="engine-chatgpt" name="translation-engine" value="chatgpt">
+    <label for="engine-chatgpt">ChatGPT</label>
+  </div>
+
+  <div class="form-group" id="chatgpt-api-key-group" style="display: none;">
+    <label for="chatgpt-api-key">ChatGPT API Key</label>
+    <input type="password" id="chatgpt-api-key">
+  </div>
   <button id="save">保存</button>
   <div id="status"></div>
   <script src="../dist/options.js"></script>
