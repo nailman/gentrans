@@ -51,7 +51,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (translation) {
           sendResponse({ success: true, translation: translation });
         } else {
-          throw new Error("APIレスポンスの形式が正しくありません。");
+          throw new Error("APIレスポンスからテキストを取得できませんでした。");
         }
 
       } catch (error) {
@@ -63,3 +63,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // 非同期レスポンスのためにtrueを返す
   }
 });
+

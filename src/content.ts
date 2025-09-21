@@ -80,26 +80,105 @@ const showTranslateDialog = (text: string) => {
 
   // bodyに追加
   document.body.appendChild(overlay);
+
+  // backgroundに翻訳をリクエスト
+  chrome.runtime.sendMessage({ type: "REQUEST_TRANSLATION", text: text }, (response) => {
+    const resultTextElement = document.getElementById("gemini-translation-result");
+    if (resultTextElement) {
+      if (response.success) {
+        resultTextElement.textContent = response.translation;
+      } else {
+        resultTextElement.textContent = `翻訳エラー: ${response.error}`;
+        resultTextElement.style.color = "red";
+      }
+    }
+  });
 };
 
-// backgroundからのメッセージを受信
+// backgroundからのメッセージを受信 (コンテキストメニュー用)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "TRANSLATE_TEXT") {
-    // ダイアログを表示
     showTranslateDialog(request.text);
-
-    // backgroundに翻訳をリクエスト
-    chrome.runtime.sendMessage({ type: "REQUEST_TRANSLATION", text: request.text }, (response) => {
-      const resultTextElement = document.getElementById("gemini-translation-result");
-      if (resultTextElement) {
-        if (response.success) {
-          resultTextElement.textContent = response.translation;
-        } else {
-          resultTextElement.textContent = `翻訳エラー: ${response.error}`;
-          resultTextElement.style.color = "red";
-        }
-      }
-    });
   }
   return true; // 非同期のレスポンスを待つためにtrueを返す
+});
+
+
+// 翻訳アイコン関連
+let translateIcon: HTMLDivElement | null = null;
+
+const createTranslateIcon = (range: Range) => {
+  if (translateIcon) {
+    translateIcon.remove();
+  }
+  const rect = range.getBoundingClientRect();
+  translateIcon = document.createElement("div");
+  translateIcon.id = "gemini-translate-icon";
+  translateIcon.innerHTML = " G "; // アイコンの見た目
+  Object.assign(translateIcon.style, {
+    position: "absolute",
+    top: `${window.scrollY + rect.bottom + 5}px`,
+    left: `${window.scrollX + rect.left}px`,
+    backgroundColor: "white",
+    border: "1px solid #ccc",
+    borderRadius: "50%",
+    width: "24px",
+    height: "24px",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    cursor: "pointer",
+    zIndex: "2147483646",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+    fontWeight: "bold",
+  });
+
+  document.body.appendChild(translateIcon);
+
+  return translateIcon;
+};
+
+const removeTranslateIcon = () => {
+  if (translateIcon) {
+    translateIcon.remove();
+    translateIcon = null;
+  }
+};
+
+document.addEventListener("mouseup", (e) => {
+  const selection = window.getSelection();
+  const selectedText = selection?.toString().trim();
+
+  if (selectedText) {
+    const range = selection!.getRangeAt(0);
+    const icon = createTranslateIcon(range);
+
+    const iconClickHandler = () => {
+      showTranslateDialog(selectedText);
+      removeTranslateIcon();
+    };
+
+    icon.addEventListener("click", iconClickHandler);
+
+    // アイコン以外がクリックされたら消すためのイベント
+    const documentClickHandler = (event: MouseEvent) => {
+      if (event.target !== icon) {
+        removeTranslateIcon();
+        document.removeEventListener("mousedown", documentClickHandler);
+      }
+    };
+    // mouseupの直後にmousedownイベントが発火してアイコンが消えるのを防ぐため、少し遅延させる
+    setTimeout(() => {
+        document.addEventListener("mousedown", documentClickHandler);
+    }, 100);
+
+  }
+});
+
+document.addEventListener("mousedown", (e) => {
+    // マウスダウンで選択範囲がなくなる前にアイコンを消す
+    const selection = window.getSelection();
+    if (!selection?.toString().trim()) {
+        removeTranslateIcon();
+    }
 });
