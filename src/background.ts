@@ -22,6 +22,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // content.tsからの翻訳リクエストを受信
+import { GoogleGenAI } from '@google/genai';
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "REQUEST_TRANSLATION") {
     // ストレージからAPIキーを取得
@@ -32,31 +34,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return;
       }
 
-      const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
-
       try {
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `以下のテキストを日本語に翻訳してください:\n\n"${request.text}"`
-              }]
-            }]
-          })
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: request.text,
+          config: {
+            systemInstruction: "あなたは優秀な翻訳家です。与えられたテキストを日本語に翻訳してください。",
+            thinkingConfig: {
+              thinkingBudget: 0, // Disables thinking
+            },
+          }
         });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`APIリクエストに失敗しました: ${response.status} ${response.statusText} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        // APIレスポンスの構造を安全に辿る
-        const translation = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const translation = response.text;
         if (translation) {
           sendResponse({ success: true, translation: translation });
         } else {
