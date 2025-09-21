@@ -17,16 +17,18 @@ const showTranslateDialog = (text: string) => {
   const overlay = document.createElement("div");
   overlay.id = "gemini-translate-dialog";
   Object.assign(overlay.style, {
-    position: "fixed",
+    position: "absolute",
     top: "0",
     left: "0",
     width: "100%",
-    height: "100%",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    height: `${document.documentElement.scrollHeight}px`,
+    backgroundColor: "transparent",
     zIndex: "2147483647",
     display: "flex",
+    alignItems: "flex-start",
     justifyContent: "center",
-    alignItems: "center",
+    paddingTop: `${window.scrollY + 100}px`,
+    boxSizing: "border-box", // paddingTopがheightに含まれないように
   });
   overlay.addEventListener("click", removeDialog);
 
@@ -37,7 +39,7 @@ const showTranslateDialog = (text: string) => {
     borderRadius: "8px",
     padding: "20px",
     width: "90%",
-    maxWidth: "500px",
+    maxWidth: "800px",
     boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
   });
   dialog.addEventListener("click", (e) => e.stopPropagation()); // ダイアログ内クリックで閉じないように
