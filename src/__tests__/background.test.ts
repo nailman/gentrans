@@ -77,20 +77,47 @@ describe("background.ts", () => {
 
     it("should return an error if Gemini API key is not set", async () => {
       (chrome.storage.local.get as jest.Mock).mockImplementationOnce((keys, callback) => callback({ translationEngine: "gemini", geminiApiKey: undefined }));
-      await (chrome.runtime.onMessage as any).callListeners(mockRequest, {}, mockSendResponse);
+      const responsePromise = new Promise<void>(resolve => {
+        mockSendResponse.mockImplementationOnce((response) => {
+          mockSendResponse.mock.calls.push([response]);
+          resolve();
+        });
+      });
+
+      (chrome.runtime.onMessage as any).callListeners(mockRequest, {}, mockSendResponse);
+      await responsePromise;
+
       expect(mockSendResponse).toHaveBeenCalledWith({ success: false, error: "Gemini APIキーが設定されていません。" });
     });
 
     it("should translate using Gemini API", async () => {
       (chrome.storage.local.get as jest.Mock).mockImplementationOnce((keys, callback) => callback({ translationEngine: "gemini", geminiApiKey: "key", includePageContent: true }));
-      await (chrome.runtime.onMessage as any).callListeners(mockRequest, {}, mockSendResponse);
+      const responsePromise = new Promise<void>(resolve => {
+        mockSendResponse.mockImplementationOnce((response) => {
+          mockSendResponse.mock.calls.push([response]);
+          resolve();
+        });
+      });
+
+      (chrome.runtime.onMessage as any).callListeners(mockRequest, {}, mockSendResponse);
+      await responsePromise;
+
       expect(mockGenerateContent).toHaveBeenCalledTimes(1);
       expect(mockSendResponse).toHaveBeenCalledWith({ success: true, translation: "mocked gemini translation" });
     });
 
     it("should translate using ChatGPT (OpenAI) API", async () => {
       (chrome.storage.local.get as jest.Mock).mockImplementationOnce((keys, callback) => callback({ translationEngine: "chatgpt", chatgptApiKey: "key", includePageContent: true }));
-      await (chrome.runtime.onMessage as any).callListeners(mockRequest, {}, mockSendResponse);
+      const responsePromise = new Promise<void>(resolve => {
+        mockSendResponse.mockImplementationOnce((response) => {
+          mockSendResponse.mock.calls.push([response]);
+          resolve();
+        });
+      });
+
+      (chrome.runtime.onMessage as any).callListeners(mockRequest, {}, mockSendResponse);
+      await responsePromise;
+
       expect(mockCreate).toHaveBeenCalledTimes(1);
       expect(mockSendResponse).toHaveBeenCalledWith({ success: true, translation: "mocked chatgpt translation" });
     });
@@ -98,7 +125,16 @@ describe("background.ts", () => {
     it("should handle API errors", async () => {
       (chrome.storage.local.get as jest.Mock).mockImplementationOnce((keys, callback) => callback({ translationEngine: "gemini", geminiApiKey: "key" }));
       mockGenerateContent.mockRejectedValueOnce(new Error("API Error"));
-      await (chrome.runtime.onMessage as any).callListeners(mockRequest, {}, mockSendResponse);
+      const responsePromise = new Promise<void>(resolve => {
+        mockSendResponse.mockImplementationOnce((response) => {
+          mockSendResponse.mock.calls.push([response]);
+          resolve();
+        });
+      });
+
+      (chrome.runtime.onMessage as any).callListeners(mockRequest, {}, mockSendResponse);
+      await responsePromise;
+
       expect(mockSendResponse).toHaveBeenCalledWith({ success: false, error: "API Error" });
     });
   });

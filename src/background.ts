@@ -75,50 +75,81 @@ async function handleTranslationRequest(request: any, sendResponse: (response: a
   try {
     let translation: string | undefined;
 
+    /**
+ * Gemini APIを使用してテキストを翻訳する
+ * @param request 翻訳リクエストオブジェクト
+ * @param geminiApiKey Gemini APIキー
+ * @param systemPrompt システムプロンプト
+ * @param includePageContent ページコンテンツを含めるか
+ * @param doNotTranslateProperNouns 固有名詞を翻訳しないか
+ * @returns 翻訳されたテキスト
+ * @throws Error Gemini APIキーが設定されていない場合、またはAPIレスポンスからテキストを取得できなかった場合
+ */
+async function translateWithGemini(
+  request: any,
+  geminiApiKey: string,
+  systemPrompt: string,
+  includePageContent: boolean,
+  doNotTranslateProperNouns: boolean,
+): Promise<string> {
+  if (!geminiApiKey) {
+    throw new Error("Gemini APIキーが設定されていません。");
+  }
+
+  const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+  const contents: any[] = [];
+  if (includePageContent && request.pageContent) {
+    contents.push({ text: formatPageContentForModel(request.pageContent) });
+  }
+  contents.push({ text: request.text });
+
+  let translation: string | undefined;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: contents,
+    config: {
+      systemInstruction: systemPrompt,
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
+    }
+  });
+  translation = response.text;
+
+  if (doNotTranslateProperNouns && translation) {
+    const restorePrompt = PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
+    const restoreContents: any[] = [
+      { text: `原文: ${request.text}\n翻訳文: ${translation}` },
+    ];
+    const restoreResponse = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: restoreContents,
+      config: {
+        systemInstruction: restorePrompt,
+        thinkingConfig: {
+          thinkingBudget: 0,
+        },
+      }
+    });
+    translation = restoreResponse.text;
+  }
+
+  if (!translation) {
+    throw new Error("APIレスポンスからテキストを取得できませんでした。");
+  }
+  return translation;
+}
+
     // Geminiの場合
     if (translationEngine === "gemini") {
-      if (!geminiApiKey) {
-        sendResponse({ success: false, error: "Gemini APIキーが設定されていません。" });
+      try {
+        translation = await translateWithGemini(request, geminiApiKey, finalSystemPrompt, includePageContent, doNotTranslateProperNouns);
+      } catch (error) {
+        // translateWithGemini内で発生したエラーをここで捕捉し、sendResponseで返す
+        sendResponse({ success: false, error: error instanceof Error ? error.message : "不明なエラー" });
         return;
       }
-
-      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-      const contents: any[] = [];
-      if (includePageContent && request.pageContent) {
-        contents.push({ text: formatPageContentForModel(request.pageContent) });
-      }
-      contents.push({ text: request.text });
-
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: contents,
-        config: {
-          systemInstruction: finalSystemPrompt,
-          thinkingConfig: {
-            thinkingBudget: 0,
-          },
-        }
-      });
-      translation = response.text;
-
-      if (doNotTranslateProperNouns && translation) {
-        const restorePrompt = PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
-        const restoreContents: any[] = [
-          { text: `原文: ${request.text}\n翻訳文: ${translation}` },
-        ];
-        const restoreResponse = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: restoreContents,
-          config: {
-            systemInstruction: restorePrompt,
-            thinkingConfig: {
-              thinkingBudget: 0,
-            },
-          }
-        });
-        translation = restoreResponse.text;
-      }
-
     }
     // ChatGPTの場合(OpenAI)
     else if (translationEngine === "chatgpt") {
