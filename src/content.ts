@@ -57,6 +57,7 @@ const showTranslateDialog = (text: string) => {
     marginTop: "0",
     borderBottom: "1px solid #eee",
     paddingBottom: "10px",
+    paddingRight: "30px", // 閉じるボタンのスペース
     cursor: "move", // カーソルを移動アイコンに
   });
 
@@ -108,16 +109,16 @@ const showTranslateDialog = (text: string) => {
   resultText.textContent = "翻訳中...";
 
   // 閉じるボタン
-  const closeButton = document.createElement("button");
-  closeButton.textContent = "閉じる";
+  const closeButton = document.createElement("div");
+  closeButton.textContent = "✕";
   Object.assign(closeButton.style, {
-    display: "block",
-    marginLeft: "auto",
-    marginTop: "20px",
-    padding: "8px 16px",
-    border: "none",
-    borderRadius: "4px",
+    position: "absolute",
+    top: "20px",
+    right: "20px",
+    fontSize: "24px",
+    color: "#AAA",
     cursor: "pointer",
+    lineHeight: "1",
   });
   closeButton.addEventListener("click", () => {
     removeDialog();
