@@ -38,9 +38,14 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // content.tsからの翻訳リクエストを受信
 import { DEFAULT_SYSTEM_PROMPT, PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL } from './constants';
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === "REQUEST_TRANSLATION") {
-    // ストレージからAPIキーと翻訳エンジンを取得
+/**
+ * 翻訳リクエストを処理する非同期関数
+ * @param request content.tsからのリクエストオブジェクト
+ * @param sendResponse content.tsへのレスポンスを送信する関数
+ */
+async function handleTranslationRequest(request: any, sendResponse: (response: any) => void) {
+  // ストレージからAPIキーと翻訳エンジンを取得
+  const result = await new Promise<{ [key: string]: any }>((resolve) => {
     chrome.storage.local.get([
       "geminiApiKey",
       "translationEngine",
@@ -52,158 +57,160 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       "systemPrompt",
       "doNotTranslateProperNouns",
       "includePageContent"
-    ], async (result) => {
-      const geminiApiKey = result.geminiApiKey;
-      const translationEngine = result.translationEngine || "gemini"; // デフォルトはGemini
-      const chatgptApiKey = result.chatgptApiKey;
-      const chatgptAzureApiKey = result.chatgptAzureApiKey;
-      const chatgptAzureEndpoint = result.chatgptAzureEndpoint;
-      const chatgptAzureDeploymentName = result.chatgptAzureDeploymentName;
-      const chatgptAzureApiVersion = result.chatgptAzureApiVersion || "2023-07-01-preview";
-      const systemPrompt = result.systemPrompt;
-      const includePageContent = result.includePageContent || false; // ここを追加
+    ], resolve);
+  });
 
-      const doNotTranslateProperNouns = result.doNotTranslateProperNouns || false;
-      let finalSystemPrompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
+  const geminiApiKey = result.geminiApiKey;
+  const translationEngine = result.translationEngine || "gemini"; // デフォルトはGemini
+  const chatgptApiKey = result.chatgptApiKey;
+  const chatgptAzureApiKey = result.chatgptAzureApiKey;
+  const chatgptAzureEndpoint = result.chatgptAzureEndpoint;
+  const chatgptAzureDeploymentName = result.chatgptAzureDeploymentName;
+  const chatgptAzureApiVersion = result.chatgptAzureApiVersion || "2023-07-01-preview";
+  const systemPrompt = result.systemPrompt;
+  const includePageContent = result.includePageContent || false;
+  const doNotTranslateProperNouns = result.doNotTranslateProperNouns || false;
+  let finalSystemPrompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
 
-      try {
-        let translation: string | undefined;
+  try {
+    let translation: string | undefined;
 
-        // Geminiの場合
-        if (translationEngine === "gemini") {
-          if (!geminiApiKey) {
-            sendResponse({ success: false, error: "Gemini APIキーが設定されていません。" });
-            return;
-          }
+    // Geminiの場合
+    if (translationEngine === "gemini") {
+      if (!geminiApiKey) {
+        sendResponse({ success: false, error: "Gemini APIキーが設定されていません。" });
+        return;
+      }
 
-          const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-          const contents: any[] = []; // Geminiのcontentsは配列
-          if (includePageContent && request.pageContent) {
-            contents.push({ text: formatPageContentForModel(request.pageContent) });
-          }
-          contents.push({ text: request.text }); // 翻訳対象のテキスト
+      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+      const contents: any[] = [];
+      if (includePageContent && request.pageContent) {
+        contents.push({ text: formatPageContentForModel(request.pageContent) });
+      }
+      contents.push({ text: request.text });
 
-          const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: contents, // ページコンテンツと翻訳対象テキストを渡す
-            config: {
-              systemInstruction: finalSystemPrompt,
-              thinkingConfig: {
-                thinkingBudget: 0, // Disables thinking
-              },
-            }
-          });
-          translation = response.text;
-
-          // 固有名詞を復元する処理
-          if (doNotTranslateProperNouns && translation) {
-            const restorePrompt = PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
-            const restoreContents: any[] = [
-              { text: `原文: ${request.text}\n翻訳文: ${translation}` },
-            ];
-            const restoreResponse = await ai.models.generateContent({
-              model: "gemini-2.5-flash",
-              contents: restoreContents,
-              config: {
-                systemInstruction: restorePrompt,
-                thinkingConfig: {
-                  thinkingBudget: 0,
-                },
-              }
-            });
-            translation = restoreResponse.text;
-          }
-
-        } 
-        // ChatGPTの場合(OpenAI)
-        else if (translationEngine === "chatgpt") {
-          if (!chatgptApiKey) {
-            sendResponse({ success: false, error: "ChatGPT APIキーが設定されていません。" });
-            return;
-          }
-          const openai = new OpenAI({ apiKey: chatgptApiKey });
-          const messages: any[] = [
-            { role: "system", content: finalSystemPrompt },
-          ];
-          if (includePageContent && request.pageContent) {
-            messages.push({ role: "user", content: formatPageContentForModel(request.pageContent) });
-          }
-          messages.push({ role: "user", content: request.text }); // 翻訳対象のテキスト
-
-          const chatCompletion = await openai.chat.completions.create({
-            messages: messages, // ページコンテンツと翻訳対象テキストを渡す
-            model: "gpt-4.1-mini", // または "gpt-4"
-          });
-          let translationContent = chatCompletion.choices[0]?.message?.content;
-          if (translationContent === null || translationContent === undefined) {
-            throw new Error("APIレスポンスからテキストを取得できませんでした。");
-          }
-          translation = translationContent;
-        } 
-        // ChatGPTの場合(Azure)
-        else if (translationEngine === "chatgpt_azure") {
-          if (!chatgptAzureApiKey || !chatgptAzureEndpoint || !chatgptAzureDeploymentName) {
-            sendResponse({ success: false, error: "Azure OpenAI APIの設定が不完全です。" });
-            return;
-          }
-
-          const openai = new OpenAI({
-            apiKey: chatgptAzureApiKey,
-            baseURL: `${chatgptAzureEndpoint}openai/deployments/${chatgptAzureDeploymentName}`,
-            defaultQuery: { 'api-version': chatgptAzureApiVersion },
-            defaultHeaders: { 'api-key': chatgptAzureApiKey },
-          });
-
-          const messages: any[] = [
-            { role: "system", content: finalSystemPrompt },
-          ];
-          if (includePageContent && request.pageContent) {
-            messages.push({ role: "user", content: formatPageContentForModel(request.pageContent) });
-          }
-          messages.push({ role: "user", content: request.text }); // 翻訳対象のテキスト
-
-          const chatCompletion = await openai.chat.completions.create({
-            messages: messages, // ページコンテンツと翻訳対象テキストを渡す
-            model: chatgptAzureDeploymentName, // Azureではデプロイ名がモデル名になる
-          });
-          let translationContent = chatCompletion.choices[0]?.message?.content;
-          if (translationContent === null || translationContent === undefined) {
-            throw new Error("APIレスポンスからテキストを取得できませんでした。");
-          }
-          translation = translationContent;
-
-          // 固有名詞を復元する処理
-          if (doNotTranslateProperNouns && translation) {
-            const restorePrompt = PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
-            const restoreMessages: any[] = [
-              { role: "system", content: restorePrompt },
-              { role: "user", content: `原文: ${request.text}\n翻訳文: ${translation}` },
-            ];
-            const restoreChatCompletion = await openai.chat.completions.create({
-              messages: restoreMessages,
-              model: chatgptAzureDeploymentName, // Azureではデプロイ名がモデル名になる
-            });
-            let restoreTranslationContent = restoreChatCompletion.choices[0]?.message?.content;
-            if (restoreTranslationContent === null || restoreTranslationContent === undefined) {
-              throw new Error("APIレスポンスからテキストを取得できませんでした。");
-            }
-            translation = restoreTranslationContent;
-          }
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: contents,
+        config: {
+          systemInstruction: finalSystemPrompt,
+          thinkingConfig: {
+            thinkingBudget: 0,
+          },
         }
+      });
+      translation = response.text;
 
-        if (translation) {
-          sendResponse({ success: true, translation: translation });
-        } else {
+      if (doNotTranslateProperNouns && translation) {
+        const restorePrompt = PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
+        const restoreContents: any[] = [
+          { text: `原文: ${request.text}\n翻訳文: ${translation}` },
+        ];
+        const restoreResponse = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: restoreContents,
+          config: {
+            systemInstruction: restorePrompt,
+            thinkingConfig: {
+              thinkingBudget: 0,
+            },
+          }
+        });
+        translation = restoreResponse.text;
+      }
+
+    }
+    // ChatGPTの場合(OpenAI)
+    else if (translationEngine === "chatgpt") {
+      if (!chatgptApiKey) {
+        sendResponse({ success: false, error: "ChatGPT APIキーが設定されていません。" });
+        return;
+      }
+      const openai = new OpenAI({ apiKey: chatgptApiKey });
+      const messages: any[] = [
+        { role: "system", content: finalSystemPrompt },
+      ];
+      if (includePageContent && request.pageContent) {
+        messages.push({ role: "user", content: formatPageContentForModel(request.pageContent) });
+      }
+      messages.push({ role: "user", content: request.text });
+
+      const chatCompletion = await openai.chat.completions.create({
+        messages: messages,
+        model: "gpt-4.1-mini",
+      });
+      let translationContent = chatCompletion.choices[0]?.message?.content;
+      if (translationContent === null || translationContent === undefined) {
+        throw new Error("APIレスポンスからテキストを取得できませんでした。");
+      }
+      translation = translationContent;
+    }
+    // ChatGPTの場合(Azure)
+    else if (translationEngine === "chatgpt_azure") {
+      if (!chatgptAzureApiKey || !chatgptAzureEndpoint || !chatgptAzureDeploymentName) {
+        sendResponse({ success: false, error: "Azure OpenAI APIの設定が不完全です。" });
+        return;
+      }
+
+      const openai = new OpenAI({
+        apiKey: chatgptAzureApiKey,
+        baseURL: `${chatgptAzureEndpoint}openai/deployments/${chatgptAzureDeploymentName}`,
+        defaultQuery: { 'api-version': chatgptAzureApiVersion },
+        defaultHeaders: { 'api-key': chatgptAzureApiKey },
+      });
+
+      const messages: any[] = [
+        { role: "system", content: finalSystemPrompt },
+      ];
+      if (includePageContent && request.pageContent) {
+        messages.push({ role: "user", content: formatPageContentForModel(request.pageContent) });
+      }
+      messages.push({ role: "user", content: request.text });
+
+      const chatCompletion = await openai.chat.completions.create({
+        messages: messages,
+        model: chatgptAzureDeploymentName,
+      });
+      let translationContent = chatCompletion.choices[0]?.message?.content;
+      if (translationContent === null || translationContent === undefined) {
+        throw new Error("APIレスポンスからテキストを取得できませんでした。");
+      }
+      translation = translationContent;
+
+      if (doNotTranslateProperNouns && translation) {
+        const restorePrompt = PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
+        const restoreMessages: any[] = [
+          { role: "system", content: restorePrompt },
+          { role: "user", content: `原文: ${request.text}\n翻訳文: ${translation}` },
+        ];
+        const restoreChatCompletion = await openai.chat.completions.create({
+          messages: restoreMessages,
+          model: chatgptAzureDeploymentName,
+        });
+        let restoreTranslationContent = restoreChatCompletion.choices[0]?.message?.content;
+        if (restoreTranslationContent === null || restoreTranslationContent === undefined) {
           throw new Error("APIレスポンスからテキストを取得できませんでした。");
         }
-
-      } catch (error) {
-        console.error(`${translationEngine} APIエラー:`, error);
-        sendResponse({ success: false, error: error instanceof Error ? error.message : "不明なエラー" });
+        translation = restoreTranslationContent;
       }
-    });
+    }
 
-    return true; // 非同期レスポンスのためにtrueを返す
+    if (translation) {
+      sendResponse({ success: true, translation: translation });
+    } else {
+      throw new Error("APIレスポンスからテキストを取得できませんでした。");
+    }
+
+  } catch (error) {
+    console.error(`${translationEngine} APIエラー:`, error);
+    sendResponse({ success: false, error: error instanceof Error ? error.message : "不明なエラー" });
+  }
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === "REQUEST_TRANSLATION") {
+    handleTranslationRequest(request, sendResponse);
+    return true;
   }
 });
 
