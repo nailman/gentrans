@@ -159,28 +159,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // 翻訳アイコン関連
 let translateIcon: HTMLDivElement | null = null;
 
-const createTranslateIcon = (range: Range) => {
+const createTranslateIcon = (e: MouseEvent) => {
   if (translateIcon) {
     translateIcon.remove();
   }
-  const rect = range.getBoundingClientRect();
   translateIcon = document.createElement("div");
   translateIcon.id = "gemini-translate-icon";
   translateIcon.innerHTML = " G "; // アイコンの見た目
   Object.assign(translateIcon.style, {
     position: "absolute",
-    top: `${window.scrollY + rect.bottom + 5}px`,
-    left: `${window.scrollX + rect.left}px`,
+    top: `${e.pageY + 10}px`,
+    left: `${e.pageX + 20}px`,
     backgroundColor: "white",
     border: "1px solid #ccc",
     borderRadius: "50%",
-    width: "24px",
-    height: "24px",
+    width: "30px",
+    height: "30px",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     cursor: "pointer",
     zIndex: "2147483646",
+    color: "black",
     boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
     fontWeight: "bold",
   });
@@ -202,8 +202,7 @@ document.addEventListener("mouseup", (e) => {
   const selectedText = selection?.toString().trim();
 
   if (selectedText) {
-    const range = selection!.getRangeAt(0);
-    const icon = createTranslateIcon(range);
+    const icon = createTranslateIcon(e);
 
     const iconClickHandler = () => {
       showTranslateDialog(selectedText);
