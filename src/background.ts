@@ -25,6 +25,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // content.tsからの翻訳リクエストを受信
+import { DEFAULT_SYSTEM_PROMPT } from './constants';
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "REQUEST_TRANSLATION") {
     // ストレージからAPIキーと翻訳エンジンを取得
@@ -35,7 +36,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       "chatgptAzureApiKey",
       "chatgptAzureEndpoint",
       "chatgptAzureDeploymentName",
-      "chatgptAzureApiVersion"
+      "chatgptAzureApiVersion",
+      "systemPrompt"
     ], async (result) => {
       const geminiApiKey = result.geminiApiKey;
       const translationEngine = result.translationEngine || "gemini"; // デフォルトはGemini
@@ -44,6 +46,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const chatgptAzureEndpoint = result.chatgptAzureEndpoint;
       const chatgptAzureDeploymentName = result.chatgptAzureDeploymentName;
       const chatgptAzureApiVersion = result.chatgptAzureApiVersion || "2023-07-01-preview";
+      const systemPrompt = result.systemPrompt;
+
+      const doNotTranslateProperNouns = result.doNotTranslateProperNouns || false;
+      let finalSystemPrompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
+      if (doNotTranslateProperNouns) {
+        finalSystemPrompt += "\n\n** 重要な命令:固有名詞は翻訳しないでください。**";
+      }
 
       try {
         let translation: string | undefined;
@@ -54,12 +63,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ success: false, error: "Gemini APIキーが設定されていません。" });
             return;
           }
+
           const ai = new GoogleGenAI({ apiKey: geminiApiKey });
           const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: request.text,
             config: {
-              systemInstruction: "あなたは優秀な翻訳家です。与えられたテキストを日本語に翻訳し、結果をMarkdown形式で出力してください。",
+              systemInstruction: finalSystemPrompt,
               thinkingConfig: {
                 thinkingBudget: 0, // Disables thinking
               },
@@ -77,7 +87,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const openai = new OpenAI({ apiKey: chatgptApiKey });
           const chatCompletion = await openai.chat.completions.create({
             messages: [
-              { role: "system", content: "あなたは優秀な翻訳家です。与えられたテキストを日本語に翻訳し、結果をMarkdown形式で出力してください。" },
+              { role: "system", content: finalSystemPrompt },
               { role: "user", content: request.text },
             ],
             model: "gpt-4.1-mini", // または "gpt-4"
@@ -104,7 +114,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
           const chatCompletion = await openai.chat.completions.create({
             messages: [
-              { role: "system", content: "あなたは優秀な翻訳家です。与えられたテキストを日本語に翻訳し、結果をMarkdown形式で出力してください。" },
+              { role: "system", content: finalSystemPrompt },
               { role: "user", content: request.text },
             ],
             model: chatgptAzureDeploymentName, // Azureではデプロイ名がモデル名になる

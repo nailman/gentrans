@@ -50,6 +50,18 @@
     <label for="chatgpt-azure-api-version">Azure OpenAI API Version</label>
     <input type="text" id="chatgpt-azure-api-version" placeholder="例: 2023-07-01-preview">
   </div>
+
+  <div class="form-group">
+    <label for="system-prompt">システムプロンプト</label>
+    <textarea id="system-prompt" rows="5" style="width: 100%;"></textarea>
+    <button id="reset-system-prompt">デフォルトに戻す</button>
+  </div>
+
+  <div class="form-group">
+    <input type="checkbox" id="do-not-translate-proper-nouns">
+    <label for="do-not-translate-proper-nouns">固有名詞を翻訳しない</label>
+  </div>
+
   <button id="save">保存</button>
   <div id="status"></div>
   <script src="../dist/options.js"></script>

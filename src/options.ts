@@ -1,3 +1,5 @@
+import { DEFAULT_SYSTEM_PROMPT } from './constants';
+
 const apiKeyInput = document.getElementById("api-key") as HTMLInputElement;
 const saveButton = document.getElementById("save") as HTMLButtonElement;
 const statusDiv = document.getElementById("status") as HTMLDivElement;
@@ -16,6 +18,11 @@ const chatgptAzureDeploymentNameGroup = document.getElementById("chatgpt-azure-d
 const chatgptAzureDeploymentNameInput = document.getElementById("chatgpt-azure-deployment-name") as HTMLInputElement;
 const chatgptAzureApiVersionGroup = document.getElementById("chatgpt-azure-api-version-group") as HTMLDivElement;
 const chatgptAzureApiVersionInput = document.getElementById("chatgpt-azure-api-version") as HTMLInputElement;
+const systemPromptInput = document.getElementById("system-prompt") as HTMLTextAreaElement;
+const resetSystemPromptButton = document.getElementById("reset-system-prompt") as HTMLButtonElement;
+const doNotTranslateProperNounsCheckbox = document.getElementById("do-not-translate-proper-nouns") as HTMLInputElement;
+
+
 
 function updateChatGPTOptionsVisibility() {
   chatgptApiKeyGroup.style.display = "none";
@@ -43,7 +50,9 @@ document.addEventListener("DOMContentLoaded", () => {
     "chatgptAzureApiKey",
     "chatgptAzureEndpoint",
     "chatgptAzureDeploymentName",
-    "chatgptAzureApiVersion"
+    "chatgptAzureApiVersion",
+    "systemPrompt",
+    "doNotTranslateProperNouns",
   ], (result) => {
     if (result.geminiApiKey) {
       apiKeyInput.value = result.geminiApiKey;
@@ -75,6 +84,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (result.chatgptAzureApiVersion) {
       chatgptAzureApiVersionInput.value = result.chatgptAzureApiVersion;
     }
+    if (result.systemPrompt) {
+      systemPromptInput.value = result.systemPrompt;
+    } else {
+      systemPromptInput.value = DEFAULT_SYSTEM_PROMPT;
+    }
+    if (result.doNotTranslateProperNouns !== undefined) {
+      doNotTranslateProperNounsCheckbox.checked = result.doNotTranslateProperNouns;
+    }
     updateChatGPTOptionsVisibility();
   });
 });
@@ -99,8 +116,9 @@ saveButton.addEventListener("click", () => {
   const chatgptAzureEndpoint = chatgptAzureEndpointInput.value;
   const chatgptAzureDeploymentName = chatgptAzureDeploymentNameInput.value;
   const chatgptAzureApiVersion = chatgptAzureApiVersionInput.value;
+  const systemPrompt = systemPromptInput.value;
 
-  const settings: { [key: string]: string } = {
+  const settings: { [key: string]: any } = {
     translationEngine: translationEngine,
   };
 
@@ -125,8 +143,28 @@ saveButton.addEventListener("click", () => {
     }
   }
 
+  if (systemPrompt !== DEFAULT_SYSTEM_PROMPT) {
+    settings.systemPrompt = systemPrompt;
+  } else {
+    // デフォルト値の場合はストレージから削除
+    chrome.storage.local.remove("systemPrompt");
+  }
+
+  const doNotTranslateProperNouns = doNotTranslateProperNounsCheckbox.checked;
+  settings.doNotTranslateProperNouns = doNotTranslateProperNouns;
+
   chrome.storage.local.set(settings, () => {
     statusDiv.textContent = "設定を保存しました。";
+    setTimeout(() => {
+      statusDiv.textContent = "";
+    }, 2000);
+  });
+});
+
+resetSystemPromptButton.addEventListener("click", () => {
+  systemPromptInput.value = DEFAULT_SYSTEM_PROMPT;
+  chrome.storage.local.remove("systemPrompt", () => {
+    statusDiv.textContent = "システムプロンプトをデフォルトに戻しました。";
     setTimeout(() => {
       statusDiv.textContent = "";
     }, 2000);
