@@ -6,7 +6,7 @@ export function initializeContextMenu() {
     // コンテキストメニュー（右クリックメニュー）を作成
     chrome.contextMenus.create({
       id: "translateWithGemini", // メニューのID
-      title: "Geminiで翻訳", // メニューに表示されるテキスト
+      title: "GenAIで翻訳", // メニューに表示されるテキスト
       contexts: ["selection"], // テキストを選択しているときのみ表示
     });
   });

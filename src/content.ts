@@ -41,23 +41,26 @@ const showTranslateDialog = (text: string) => {
     transform: "translate(-50%, -50%)",
     background: "#101",
     borderRadius: "8px",
-    padding: "20px",
+    padding: "0 20px 20px 20px",
     width: "90%",
     maxWidth: "800px",
     boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
     zIndex: "2147483647",
     color: "#AAA",
+    opacity: "0.97",
   });
   dialog.addEventListener("click", (e) => e.stopPropagation());
 
   // タイトル（ドラッグハンドル）
   const title = document.createElement("h3");
-  title.textContent = "Gemini 翻訳";
+  title.textContent = "GenAI 翻訳";
   Object.assign(title.style, {
     marginTop: "0",
-    borderBottom: "1px solid #eee",
+    marginLeft: "-20px",
+    paddingTop: "20px",
     paddingBottom: "10px",
     paddingRight: "30px", // 閉じるボタンのスペース
+    paddingLeft: "20px",
     cursor: "move", // カーソルを移動アイコンに
   });
 
@@ -111,6 +114,7 @@ const showTranslateDialog = (text: string) => {
   Object.assign(resultText.style, {
     maxHeight: "60vh",
     overflowY: "auto",
+    borderTop: "1px solid #eee",
     paddingRight: "15px", // スクロールバーのスペース
     paddingBottom: "40px", // コピーボタンのスペース
   });
