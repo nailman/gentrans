@@ -1,6 +1,18 @@
 import { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
 
+/**
+ * モデルに渡すページコンテンツのフォーマットを行うヘルパー関数
+ * @param pageContent ページコンテンツの文字列
+ * @returns フォーマットされたページコンテンツ
+ */
+function formatPageContentForModel(pageContent: string): string {
+  return `以下は翻訳の参考情報となるテキストの全文です。参考情報自体は翻訳しないでください。
+  <参考情報>
+  ${pageContent}
+  </参考情報>`;
+}
+
 // 拡張機能がインストールされたときに実行
 chrome.runtime.onInstalled.addListener(() => {
   // コンテキストメニュー（右クリックメニュー）を作成
@@ -25,7 +37,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // content.tsからの翻訳リクエストを受信
-import { DEFAULT_SYSTEM_PROMPT } from './constants';
+import { DEFAULT_SYSTEM_PROMPT, PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL } from './constants';
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "REQUEST_TRANSLATION") {
     // ストレージからAPIキーと翻訳エンジンを取得
@@ -37,7 +49,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       "chatgptAzureEndpoint",
       "chatgptAzureDeploymentName",
       "chatgptAzureApiVersion",
-      "systemPrompt"
+      "systemPrompt",
+      "doNotTranslateProperNouns",
+      "includePageContent"
     ], async (result) => {
       const geminiApiKey = result.geminiApiKey;
       const translationEngine = result.translationEngine || "gemini"; // デフォルトはGemini
@@ -47,12 +61,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const chatgptAzureDeploymentName = result.chatgptAzureDeploymentName;
       const chatgptAzureApiVersion = result.chatgptAzureApiVersion || "2023-07-01-preview";
       const systemPrompt = result.systemPrompt;
+      const includePageContent = result.includePageContent || false; // ここを追加
 
       const doNotTranslateProperNouns = result.doNotTranslateProperNouns || false;
       let finalSystemPrompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
-      if (doNotTranslateProperNouns) {
-        finalSystemPrompt += "\n\n** 重要な命令:固有名詞は翻訳しないでください。**";
-      }
 
       try {
         let translation: string | undefined;
@@ -65,9 +77,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
 
           const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+          const contents: any[] = []; // Geminiのcontentsは配列
+          if (includePageContent && request.pageContent) {
+            contents.push({ text: formatPageContentForModel(request.pageContent) });
+          }
+          contents.push({ text: request.text }); // 翻訳対象のテキスト
+
           const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: request.text,
+            contents: contents, // ページコンテンツと翻訳対象テキストを渡す
             config: {
               systemInstruction: finalSystemPrompt,
               thinkingConfig: {
@@ -77,6 +95,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           });
           translation = response.text;
 
+          // 固有名詞を復元する処理
+          if (doNotTranslateProperNouns && translation) {
+            const restorePrompt = PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
+            const restoreContents: any[] = [
+              { text: `原文: ${request.text}\n翻訳文: ${translation}` },
+            ];
+            const restoreResponse = await ai.models.generateContent({
+              model: "gemini-2.5-flash",
+              contents: restoreContents,
+              config: {
+                systemInstruction: restorePrompt,
+                thinkingConfig: {
+                  thinkingBudget: 0,
+                },
+              }
+            });
+            translation = restoreResponse.text;
+          }
+
         } 
         // ChatGPTの場合(OpenAI)
         else if (translationEngine === "chatgpt") {
@@ -85,11 +122,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return;
           }
           const openai = new OpenAI({ apiKey: chatgptApiKey });
+          const messages: any[] = [
+            { role: "system", content: finalSystemPrompt },
+          ];
+          if (includePageContent && request.pageContent) {
+            messages.push({ role: "user", content: formatPageContentForModel(request.pageContent) });
+          }
+          messages.push({ role: "user", content: request.text }); // 翻訳対象のテキスト
+
           const chatCompletion = await openai.chat.completions.create({
-            messages: [
-              { role: "system", content: finalSystemPrompt },
-              { role: "user", content: request.text },
-            ],
+            messages: messages, // ページコンテンツと翻訳対象テキストを渡す
             model: "gpt-4.1-mini", // または "gpt-4"
           });
           let translationContent = chatCompletion.choices[0]?.message?.content;
@@ -112,11 +154,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             defaultHeaders: { 'api-key': chatgptAzureApiKey },
           });
 
+          const messages: any[] = [
+            { role: "system", content: finalSystemPrompt },
+          ];
+          if (includePageContent && request.pageContent) {
+            messages.push({ role: "user", content: formatPageContentForModel(request.pageContent) });
+          }
+          messages.push({ role: "user", content: request.text }); // 翻訳対象のテキスト
+
           const chatCompletion = await openai.chat.completions.create({
-            messages: [
-              { role: "system", content: finalSystemPrompt },
-              { role: "user", content: request.text },
-            ],
+            messages: messages, // ページコンテンツと翻訳対象テキストを渡す
             model: chatgptAzureDeploymentName, // Azureではデプロイ名がモデル名になる
           });
           let translationContent = chatCompletion.choices[0]?.message?.content;
@@ -124,6 +171,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             throw new Error("APIレスポンスからテキストを取得できませんでした。");
           }
           translation = translationContent;
+
+          // 固有名詞を復元する処理
+          if (doNotTranslateProperNouns && translation) {
+            const restorePrompt = PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
+            const restoreMessages: any[] = [
+              { role: "system", content: restorePrompt },
+              { role: "user", content: `原文: ${request.text}\n翻訳文: ${translation}` },
+            ];
+            const restoreChatCompletion = await openai.chat.completions.create({
+              messages: restoreMessages,
+              model: chatgptAzureDeploymentName, // Azureではデプロイ名がモデル名になる
+            });
+            let restoreTranslationContent = restoreChatCompletion.choices[0]?.message?.content;
+            if (restoreTranslationContent === null || restoreTranslationContent === undefined) {
+              throw new Error("APIレスポンスからテキストを取得できませんでした。");
+            }
+            translation = restoreTranslationContent;
+          }
         }
 
         if (translation) {

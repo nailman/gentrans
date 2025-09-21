@@ -200,16 +200,30 @@ const showTranslateDialog = (text: string) => {
   document.body.appendChild(dialog);
 
   // backgroundに翻訳をリクエスト
-  chrome.runtime.sendMessage({ type: "REQUEST_TRANSLATION", text: text }, (response) => {
-    const resultTextElement = document.getElementById("gemini-translation-result");
-    if (resultTextElement) {
-      if (response.success) {
-        resultTextElement.innerHTML = marked(response.translation) as string;
-      } else {
-        resultTextElement.textContent = `翻訳エラー: ${response.error}`;
-        resultTextElement.style.color = "red";
-      }
+  // includePageContentオプションを取得
+  chrome.storage.local.get(["includePageContent"], (result) => {
+    const includePageContent = result.includePageContent || false;
+    let pageContent = "";
+    if (includePageContent) {
+      // ページ全体のテキストコンテンツを取得
+      pageContent = document.body.innerText;
     }
+
+    chrome.runtime.sendMessage({
+      type: "REQUEST_TRANSLATION",
+      text: text,
+      pageContent: pageContent // ページコンテンツを追加
+    }, (response) => {
+      const resultTextElement = document.getElementById("gemini-translation-result");
+      if (resultTextElement) {
+        if (response.success) {
+          resultTextElement.innerHTML = marked(response.translation) as string;
+        } else {
+          resultTextElement.textContent = `翻訳エラー: ${response.error}`;
+          resultTextElement.style.color = "red";
+        }
+      }
+    });
   });
 };
 
