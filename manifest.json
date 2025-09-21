@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Gemini 翻訳",
+  "name": "GenAI 翻訳",
   "version": "1.0.0",
-  "description": "右クリックで選択したテキストをGeminiで翻訳します。",
+  "description": "右クリックで選択したテキストを生成AIで翻訳します。",
   "permissions": [
     "contextMenus",
     "scripting",
@@ -41,6 +41,6 @@
     }
   ],
   "action": {
-    "default_title": "Gemini 翻訳"
+    "default_title": "GenAI 翻訳"
   }
 }
