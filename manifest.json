@@ -23,6 +23,20 @@
       ],
       "js": [
         "dist/content.js"
+      ],
+      "css": [
+        "public/material-icons.css"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "public/material-icons.css",
+        "public/flUhRq6tzZclQEJ-Vdg-IuiaDsNZ.ttf"
+      ],
+      "matches": [
+        "<all_urls>"
       ]
     }
   ],

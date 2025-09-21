@@ -107,6 +107,13 @@ const showTranslateDialog = (text: string) => {
   const resultText = document.createElement("div");
   resultText.id = "gemini-translation-result";
   resultText.textContent = "翻訳中...";
+  // 結果エリアのスタイル調整
+  Object.assign(resultText.style, {
+    maxHeight: "60vh",
+    overflowY: "auto",
+    paddingRight: "15px", // スクロールバーのスペース
+    paddingBottom: "40px", // コピーボタンのスペース
+  });
 
   // 閉じるボタン
   const closeButton = document.createElement("div");
@@ -125,10 +132,69 @@ const showTranslateDialog = (text: string) => {
     mouseUpHandler(); //念のため
   });
 
+  // コピーボタン
+  const copyButton = document.createElement("span");
+  copyButton.textContent = "content_copy"; // マテリアルアイコンの名前
+  copyButton.className = "material-icons"; // マテリアルアイコンのクラス
+  Object.assign(copyButton.style, {
+    position: "absolute",
+    bottom: "20px",
+    right: "20px",
+    fontSize: "24px",
+    color: "#AAA",
+    cursor: "pointer",
+  });
+
+  // コピーフィードバック
+  const copyFeedback = document.createElement("span");
+  copyFeedback.textContent = "コピーしました！";
+  Object.assign(copyFeedback.style, {
+    position: "absolute",
+    bottom: "25px",
+    right: "55px",
+    background: "#333",
+    color: "#fff",
+    padding: "5px 10px",
+    borderRadius: "4px",
+    fontSize: "12px",
+    display: "none", // 最初は非表示
+    zIndex: "1",
+  });
+
+  copyButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const resultElement = document.getElementById("gemini-translation-result");
+    if (resultElement) {
+      navigator.clipboard
+        .writeText(resultElement.innerText)
+        .then(() => {
+          // フィードバックを表示して少ししたら消す
+          copyFeedback.style.display = "inline";
+          setTimeout(() => {
+            copyFeedback.style.display = "none";
+          }, 2000);
+        })
+        .catch((err) => {
+          console.error("クリップボードへのコピーに失敗しました:", err);
+          copyFeedback.textContent = "コピー失敗";
+          copyFeedback.style.background = "red";
+          copyFeedback.style.display = "inline";
+          setTimeout(() => {
+            copyFeedback.style.display = "none";
+            // 元のテキストに戻す
+            copyFeedback.textContent = "コピーしました！";
+            copyFeedback.style.background = "#333";
+          }, 2000);
+        });
+    }
+  });
+
   // 要素を組み立て
   dialog.appendChild(title);
   dialog.appendChild(resultText);
   dialog.appendChild(closeButton);
+  dialog.appendChild(copyButton);
+  dialog.appendChild(copyFeedback);
   // オーバーレイとダイアログを別々に追加
   document.body.appendChild(overlay);
   document.body.appendChild(dialog);
