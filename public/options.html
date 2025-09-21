@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Gemini 翻訳 オプション</title>
+  <style>
+    body { font-family: sans-serif; padding: 1em; width: 400px; }
+    .form-group { margin-bottom: 1em; }
+    label { display: block; margin-bottom: 0.5em; }
+    input { width: 100%; padding: 0.5em; box-sizing: border-box; }
+    button { padding: 0.7em 1.5em; border: none; background-color: #007bff; color: white; border-radius: 4px; cursor: pointer; }
+    #status { margin-top: 1em; color: green; }
+  </style>
+</head>
+<body>
+  <h1>Gemini 翻訳 オプション</h1>
+  <div class="form-group">
+    <label for="api-key">Gemini API Key</label>
+    <input type="password" id="api-key">
+  </div>
+  <button id="save">保存</button>
+  <div id="status"></div>
+  <script src="../dist/options.js"></script>
+</body>
+</html>
