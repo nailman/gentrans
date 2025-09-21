@@ -40,7 +40,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           model: "gemini-2.5-flash",
           contents: request.text,
           config: {
-            systemInstruction: "あなたは優秀な翻訳家です。与えられたテキストを日本語に翻訳してください。",
+            systemInstruction: "あなたは優秀な翻訳家です。与えられたテキストを日本語に翻訳し、結果をMarkdown形式で出力してください。",
             thinkingConfig: {
               thinkingBudget: 0, // Disables thinking
             },

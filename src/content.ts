@@ -1,3 +1,4 @@
+import { marked } from 'marked';
 console.log("Content script loaded.");
 
 // 既存のダイアログがあれば削除する関数
@@ -49,13 +50,8 @@ const showTranslateDialog = (text: string) => {
   title.textContent = "Gemini 翻訳";
   Object.assign(title.style, { marginTop: "0", borderBottom: "1px solid #eee", paddingBottom: "10px" });
 
-  // 元のテキスト
-  const originalText = document.createElement("p");
-  originalText.textContent = text;
-  Object.assign(originalText.style, { fontStyle: "italic", color: "#555" });
-
   // 翻訳結果エリア
-  const resultText = document.createElement("p");
+  const resultText = document.createElement("div");
   resultText.id = "gemini-translation-result";
   resultText.textContent = "翻訳中...";
 
@@ -75,7 +71,6 @@ const showTranslateDialog = (text: string) => {
 
   // 要素を組み立て
   dialog.appendChild(title);
-  dialog.appendChild(originalText);
   dialog.appendChild(resultText);
   dialog.appendChild(closeButton);
   overlay.appendChild(dialog);
@@ -88,7 +83,7 @@ const showTranslateDialog = (text: string) => {
     const resultTextElement = document.getElementById("gemini-translation-result");
     if (resultTextElement) {
       if (response.success) {
-        resultTextElement.textContent = response.translation;
+        resultTextElement.innerHTML = marked(response.translation) as string;
       } else {
         resultTextElement.textContent = `翻訳エラー: ${response.error}`;
         resultTextElement.style.color = "red";
