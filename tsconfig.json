@@ -7,7 +7,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "types": ["chrome"]
+    "types": ["chrome", "jest", "jest-chrome"]
   },
   "include": ["src/**/*.ts"]
 }

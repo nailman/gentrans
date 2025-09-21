@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "build": "webpack --config webpack.config.js"
   },
   "keywords": [],
@@ -12,6 +12,10 @@
   "description": "",
   "devDependencies": {
     "@types/chrome": "^0.1.12",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.1.3",
+    "jest-chrome": "^0.8.0",
+    "ts-jest": "^29.4.4",
     "ts-loader": "^9.5.4",
     "typescript": "^5.9.2",
     "webpack": "^5.101.3",
