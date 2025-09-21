@@ -1,9 +1,54 @@
 /// <reference types="jest" />
-import "jest-chrome";
 
-// chrome APIのモック
-// jest-chromeが提供していないAPIや、特定の挙動をさせたい場合にjest.fn()などで上書きする
-Object.assign(global, require("jest-chrome"));
+// イベントリスナーを管理するためのヘルパーファクトリ
+const createMockEventListener = () => {
+  const listeners: ((...args: any[]) => any)[] = [];
+  return {
+    addListener: jest.fn((callback) => {
+      listeners.push(callback);
+    }),
+    removeListener: jest.fn((callback) => {
+      const index = listeners.indexOf(callback);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    }),
+    hasListener: jest.fn((callback) => listeners.includes(callback)),
+    // テストコードからリスナーを同期的に呼び出すためのヘルパー
+    callListeners: (...args: any[]) => {
+      listeners.forEach((listener) => listener(...args));
+    },
+    // テスト間でリスナーをリセットするためのヘルパー
+    clearListeners: () => {
+      listeners.length = 0;
+    },
+  };
+};
+
+// jest-chromeの代わりに手動でchrome APIの基本構造をモックする
+const chromeMock = {
+  runtime: {
+    onInstalled: createMockEventListener(),
+    onMessage: createMockEventListener(),
+    sendMessage: jest.fn(),
+  },
+  storage: {
+    local: {}, // この後で詳細なモックに上書きされる
+  },
+  tabs: {
+    create: jest.fn(),
+    query: jest.fn(),
+    sendMessage: jest.fn(),
+  },
+  contextMenus: {
+    create: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+    onClicked: createMockEventListener(),
+  },
+};
+
+(global as any).chrome = chromeMock;
 
 // chrome.storage.local のモック
 let mockStorage: Record<string, any> = {};
@@ -46,8 +91,22 @@ Object.defineProperty(global.chrome.storage, "local", {
   writable: true,
 });
 
-// 各テストの前にストレージをクリア
+// 各テストの前にモックとストレージをクリア
 beforeEach(() => {
-  mockStorage = {}; // ストレージをクリア
+  mockStorage = {};
   jest.clearAllMocks();
+
+  // イベントリスナーをクリア
+  chromeMock.runtime.onInstalled.clearListeners();
+  chromeMock.runtime.onMessage.clearListeners();
+  chromeMock.contextMenus.onClicked.clearListeners();
+
+  // 関数モックの呼び出し履歴をクリア
+  chromeMock.runtime.onInstalled.addListener.mockClear();
+  chromeMock.runtime.onMessage.addListener.mockClear();
+  chromeMock.contextMenus.onClicked.addListener.mockClear();
+  chromeMock.runtime.sendMessage.mockClear();
+  chromeMock.contextMenus.create.mockClear();
+  chromeMock.tabs.create.mockClear();
+  chromeMock.tabs.sendMessage.mockClear();
 });
