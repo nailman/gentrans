@@ -1,8 +1,7 @@
-import { TranslationSettings, TranslationRequest } from './types';
+import { TranslationRequest } from './types';
 import { ITranslationEngine } from './translationEngines/ITranslationEngine';
-import { GeminiTranslationEngine } from './translationEngines/GeminiTranslationEngine';
-import { OpenAITranslationEngine } from './translationEngines/OpenAITranslationEngine';
-import { AzureOpenAITranslationEngine } from './translationEngines/AzureOpenAITranslationEngine';
+import { createTranslationEngine } from './utils/translationEngineFactory';
+import { getTranslationSettings } from './utils/settingsManager';
 
 
 // 拡張機能がインストールされたときに実行
@@ -29,41 +28,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // content.tsからの翻訳リクエストを受信
-import { DEFAULT_SYSTEM_PROMPT, PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL } from './constants';
-
-/**
- * 翻訳設定をchrome.storage.localから取得する非同期関数
- * @returns 翻訳設定を含むオブジェクト
- */
-async function getTranslationSettings(): Promise<TranslationSettings> {
-  const result = await new Promise<{ [key: string]: any }>((resolve) => {
-    chrome.storage.local.get([
-      "geminiApiKey",
-      "translationEngine",
-      "chatgptApiKey",
-      "chatgptAzureApiKey",
-      "chatgptAzureEndpoint",
-      "chatgptAzureDeploymentName",
-      "chatgptAzureApiVersion",
-      "systemPrompt",
-      "doNotTranslateProperNouns",
-      "includePageContent"
-    ], resolve);
-  });
-
-  return {
-    geminiApiKey: result.geminiApiKey,
-    translationEngine: result.translationEngine || "gemini",
-    chatgptApiKey: result.chatgptApiKey,
-    chatgptAzureApiKey: result.chatgptAzureApiKey,
-    chatgptAzureEndpoint: result.chatgptAzureEndpoint,
-    chatgptAzureDeploymentName: result.chatgptAzureDeploymentName,
-    chatgptAzureApiVersion: result.chatgptAzureApiVersion || "2023-07-01-preview",
-    systemPrompt: result.systemPrompt || DEFAULT_SYSTEM_PROMPT, // ここでデフォルト値を適用
-    includePageContent: result.includePageContent || false,
-    doNotTranslateProperNouns: result.doNotTranslateProperNouns || false,
-  };
-}
 
 /**
  * 翻訳リクエストを処理する非同期関数
@@ -75,17 +39,7 @@ async function handleTranslationRequest(request: TranslationRequest, sendRespons
 
   try {
     let translation: string | undefined;
-    let engine: ITranslationEngine | undefined;
-
-    if (settings.translationEngine === "gemini") {
-      engine = new GeminiTranslationEngine();
-    } else if (settings.translationEngine === "chatgpt") {
-      engine = new OpenAITranslationEngine();
-    } else if (settings.translationEngine === "chatgpt_azure") {
-      engine = new AzureOpenAITranslationEngine();
-    } else {
-      throw new Error("サポートされていない翻訳エンジンです。");
-    }
+    const engine: ITranslationEngine = createTranslationEngine(settings);
 
     if (engine) {
       translation = await engine.translate(request, settings);
