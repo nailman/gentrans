@@ -28,14 +28,27 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "REQUEST_TRANSLATION") {
     // ストレージからAPIキーと翻訳エンジンを取得
-    chrome.storage.local.get(["geminiApiKey", "translationEngine", "chatgptApiKey"], async (result) => {
+    chrome.storage.local.get([
+      "geminiApiKey",
+      "translationEngine",
+      "chatgptApiKey",
+      "chatgptAzureApiKey",
+      "chatgptAzureEndpoint",
+      "chatgptAzureDeploymentName",
+      "chatgptAzureApiVersion"
+    ], async (result) => {
       const geminiApiKey = result.geminiApiKey;
       const translationEngine = result.translationEngine || "gemini"; // デフォルトはGemini
       const chatgptApiKey = result.chatgptApiKey;
+      const chatgptAzureApiKey = result.chatgptAzureApiKey;
+      const chatgptAzureEndpoint = result.chatgptAzureEndpoint;
+      const chatgptAzureDeploymentName = result.chatgptAzureDeploymentName;
+      const chatgptAzureApiVersion = result.chatgptAzureApiVersion || "2023-07-01-preview";
 
       try {
         let translation: string | undefined;
 
+        // Geminiの場合
         if (translationEngine === "gemini") {
           if (!geminiApiKey) {
             sendResponse({ success: false, error: "Gemini APIキーが設定されていません。" });
@@ -54,7 +67,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           });
           translation = response.text;
 
-        } else if (translationEngine === "chatgpt") {
+        } 
+        // ChatGPTの場合(OpenAI)
+        else if (translationEngine === "chatgpt") {
           if (!chatgptApiKey) {
             sendResponse({ success: false, error: "ChatGPT APIキーが設定されていません。" });
             return;
@@ -65,7 +80,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               { role: "system", content: "あなたは優秀な翻訳家です。与えられたテキストを日本語に翻訳し、結果をMarkdown形式で出力してください。" },
               { role: "user", content: request.text },
             ],
-            model: "gpt-3.5-turbo", // または "gpt-4"
+            model: "gpt-4.1-mini", // または "gpt-4"
+          });
+          let translationContent = chatCompletion.choices[0]?.message?.content;
+          if (translationContent === null || translationContent === undefined) {
+            throw new Error("APIレスポンスからテキストを取得できませんでした。");
+          }
+          translation = translationContent;
+        } 
+        // ChatGPTの場合(Azure)
+        else if (translationEngine === "chatgpt_azure") {
+          if (!chatgptAzureApiKey || !chatgptAzureEndpoint || !chatgptAzureDeploymentName) {
+            sendResponse({ success: false, error: "Azure OpenAI APIの設定が不完全です。" });
+            return;
+          }
+
+          const openai = new OpenAI({
+            apiKey: chatgptAzureApiKey,
+            baseURL: `${chatgptAzureEndpoint}openai/deployments/${chatgptAzureDeploymentName}`,
+            defaultQuery: { 'api-version': chatgptAzureApiVersion },
+            defaultHeaders: { 'api-key': chatgptAzureApiKey },
+          });
+
+          const chatCompletion = await openai.chat.completions.create({
+            messages: [
+              { role: "system", content: "あなたは優秀な翻訳家です。与えられたテキストを日本語に翻訳し、結果をMarkdown形式で出力してください。" },
+              { role: "user", content: request.text },
+            ],
+            model: chatgptAzureDeploymentName, // Azureではデプロイ名がモデル名になる
           });
           let translationContent = chatCompletion.choices[0]?.message?.content;
           if (translationContent === null || translationContent === undefined) {
