@@ -38,13 +38,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // content.tsからの翻訳リクエストを受信
 import { DEFAULT_SYSTEM_PROMPT, PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL } from './constants';
+
 /**
- * 翻訳リクエストを処理する非同期関数
- * @param request content.tsからのリクエストオブジェクト
- * @param sendResponse content.tsへのレスポンスを送信する関数
+ * 翻訳設定をchrome.storage.localから取得する非同期関数
+ * @returns 翻訳設定を含むオブジェクト
  */
-async function handleTranslationRequest(request: any, sendResponse: (response: any) => void) {
-  // ストレージからAPIキーと翻訳エンジンを取得
+async function getTranslationSettings() {
   const result = await new Promise<{ [key: string]: any }>((resolve) => {
     chrome.storage.local.get([
       "geminiApiKey",
@@ -60,16 +59,40 @@ async function handleTranslationRequest(request: any, sendResponse: (response: a
     ], resolve);
   });
 
-  const geminiApiKey = result.geminiApiKey;
-  const translationEngine = result.translationEngine || "gemini"; // デフォルトはGemini
-  const chatgptApiKey = result.chatgptApiKey;
-  const chatgptAzureApiKey = result.chatgptAzureApiKey;
-  const chatgptAzureEndpoint = result.chatgptAzureEndpoint;
-  const chatgptAzureDeploymentName = result.chatgptAzureDeploymentName;
-  const chatgptAzureApiVersion = result.chatgptAzureApiVersion || "2023-07-01-preview";
-  const systemPrompt = result.systemPrompt;
-  const includePageContent = result.includePageContent || false;
-  const doNotTranslateProperNouns = result.doNotTranslateProperNouns || false;
+  return {
+    geminiApiKey: result.geminiApiKey,
+    translationEngine: result.translationEngine || "gemini",
+    chatgptApiKey: result.chatgptApiKey,
+    chatgptAzureApiKey: result.chatgptAzureApiKey,
+    chatgptAzureEndpoint: result.chatgptAzureEndpoint,
+    chatgptAzureDeploymentName: result.chatgptAzureDeploymentName,
+    chatgptAzureApiVersion: result.chatgptAzureApiVersion || "2023-07-01-preview",
+    systemPrompt: result.systemPrompt,
+    includePageContent: result.includePageContent || false,
+    doNotTranslateProperNouns: result.doNotTranslateProperNouns || false,
+  };
+}
+
+/**
+ * 翻訳リクエストを処理する非同期関数
+ * @param request content.tsからのリクエストオブジェクト
+ * @param sendResponse content.tsへのレスポンスを送信する関数
+ */
+async function handleTranslationRequest(request: any, sendResponse: (response: any) => void) {
+  const settings = await getTranslationSettings();
+  const {
+    geminiApiKey,
+    translationEngine,
+    chatgptApiKey,
+    chatgptAzureApiKey,
+    chatgptAzureEndpoint,
+    chatgptAzureDeploymentName,
+    chatgptAzureApiVersion,
+    systemPrompt,
+    includePageContent,
+    doNotTranslateProperNouns,
+  } = settings;
+
   let finalSystemPrompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
 
   try {
