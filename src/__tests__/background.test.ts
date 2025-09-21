@@ -20,7 +20,7 @@ jest.mock("openai", () => ({
   })),
 }));
 
-describe("background.ts", () => {
+describe("background.tsのテスト", () => {
   beforeEach(() => {
     mockGenerateContent.mockClear();
     mockCreate.mockClear();
@@ -46,7 +46,7 @@ describe("background.ts", () => {
     });
   });
 
-  it("should create a context menu item on installation", () => {
+  it("インストール時にコンテキストメニュー項目を作成するべき", () => {
     require("../background");
     (chrome.runtime.onInstalled as any).callListeners();
     expect(chrome.contextMenus.create).toHaveBeenCalledWith({
@@ -56,7 +56,7 @@ describe("background.ts", () => {
     });
   });
 
-  it("should send a message to content script when context menu is clicked", () => {
+  it("コンテキストメニューがクリックされたときにコンテンツスクリプトにメッセージを送信するべき", () => {
     require("../background");
     const mockTabId = 123;
     const mockSelectionText = "Selected Text";
@@ -66,7 +66,7 @@ describe("background.ts", () => {
     expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(mockTabId, { type: "TRANSLATE_TEXT", text: mockSelectionText });
   });
 
-  describe("chrome.runtime.onMessage - REQUEST_TRANSLATION", () => {
+  describe("chrome.runtime.onMessage - 翻訳リクエスト", () => {
     let mockSendResponse: jest.Mock;
     const mockRequest = { type: "REQUEST_TRANSLATION", text: "Hello", pageContent: "This is page content." };
 
@@ -75,7 +75,7 @@ describe("background.ts", () => {
       mockSendResponse = jest.fn();
     });
 
-    it("should return an error if Gemini API key is not set", async () => {
+    it("Gemini APIキーが設定されていない場合、エラーを返す", async () => {
       (chrome.storage.local.get as jest.Mock).mockImplementationOnce((keys, callback) => callback({ translationEngine: "gemini", geminiApiKey: undefined }));
       const responsePromise = new Promise<void>(resolve => {
         mockSendResponse.mockImplementationOnce((response) => {
@@ -90,7 +90,7 @@ describe("background.ts", () => {
       expect(mockSendResponse).toHaveBeenCalledWith({ success: false, error: "Gemini APIキーが設定されていません。" });
     });
 
-    it("should translate using Gemini API", async () => {
+    it("Gemini APIを使用して翻訳する", async () => {
       (chrome.storage.local.get as jest.Mock).mockImplementationOnce((keys, callback) => callback({ translationEngine: "gemini", geminiApiKey: "key", includePageContent: true }));
       const responsePromise = new Promise<void>(resolve => {
         mockSendResponse.mockImplementationOnce((response) => {
@@ -106,7 +106,7 @@ describe("background.ts", () => {
       expect(mockSendResponse).toHaveBeenCalledWith({ success: true, translation: "mocked gemini translation" });
     });
 
-    it("should translate using ChatGPT (OpenAI) API", async () => {
+    it("ChatGPT (OpenAI) APIを使用して翻訳する", async () => {
       (chrome.storage.local.get as jest.Mock).mockImplementationOnce((keys, callback) => callback({ translationEngine: "chatgpt", chatgptApiKey: "key", includePageContent: true }));
       const responsePromise = new Promise<void>(resolve => {
         mockSendResponse.mockImplementationOnce((response) => {
@@ -122,7 +122,7 @@ describe("background.ts", () => {
       expect(mockSendResponse).toHaveBeenCalledWith({ success: true, translation: "mocked chatgpt translation" });
     });
 
-    it("should handle API errors", async () => {
+    it("APIエラーを処理する", async () => {
       (chrome.storage.local.get as jest.Mock).mockImplementationOnce((keys, callback) => callback({ translationEngine: "gemini", geminiApiKey: "key" }));
       mockGenerateContent.mockRejectedValueOnce(new Error("API Error"));
       const responsePromise = new Promise<void>(resolve => {

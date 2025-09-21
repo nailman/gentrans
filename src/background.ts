@@ -67,7 +67,7 @@ async function getTranslationSettings() {
     chatgptAzureEndpoint: result.chatgptAzureEndpoint,
     chatgptAzureDeploymentName: result.chatgptAzureDeploymentName,
     chatgptAzureApiVersion: result.chatgptAzureApiVersion || "2023-07-01-preview",
-    systemPrompt: result.systemPrompt,
+    systemPrompt: result.systemPrompt || DEFAULT_SYSTEM_PROMPT, // ここでデフォルト値を適用
     includePageContent: result.includePageContent || false,
     doNotTranslateProperNouns: result.doNotTranslateProperNouns || false,
   };
@@ -236,8 +236,6 @@ async function handleChatgptAzureTranslation(request: any, settings: any): Promi
  */
 async function handleTranslationRequest(request: any, sendResponse: (response: any) => void) {
   const settings = await getTranslationSettings();
-  // finalSystemPromptはsettingsから取得したsystemPromptを使用するように変更
-  settings.systemPrompt = settings.systemPrompt || DEFAULT_SYSTEM_PROMPT;
 
   try {
     let translation: string | undefined;
