@@ -30,11 +30,11 @@ describe('コンテントスクリプト', () => {
     // onMessageリスナーを呼び出してダイアログを表示
     (chrome.runtime.onMessage as any).callListeners({ type: 'TRANSLATE_TEXT', text: textToTranslate }, {}, () => {});
 
-    // ダイアログがDOMに存在するか確認
+    // ダイアログとオーバーレイがDOMに存在するか確認
+    const overlay = document.getElementById('gemini-translate-overlay');
     const dialog = document.getElementById('gemini-translate-dialog');
-    const dialogBody = document.getElementById('gemini-translate-dialog-body');
+    expect(overlay).toBeInTheDocument();
     expect(dialog).toBeInTheDocument();
-    expect(dialogBody).toBeInTheDocument();
 
     // 翻訳リクエストが送信されたか確認
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
@@ -52,15 +52,15 @@ describe('コンテントスクリプト', () => {
     (chrome.runtime.onMessage as any).callListeners({ type: 'TRANSLATE_TEXT', text: 'test' }, {}, () => {});
 
     // 閉じるボタンを取得してクリック
-    const closeButton = document.querySelector('#gemini-translate-dialog-body div[style*="cursor: pointer"]');
+    const closeButton = document.querySelector('.close-button');
     expect(closeButton).toBeInTheDocument();
     (closeButton as HTMLElement).click();
 
-    // ダイアログがDOMから削除されたか確認
+    // ダイアログとオーバーレイがDOMから削除されたか確認
+    const overlay = document.getElementById('gemini-translate-overlay');
     const dialog = document.getElementById('gemini-translate-dialog');
-    const dialogBody = document.getElementById('gemini-translate-dialog-body');
+    expect(overlay).not.toBeInTheDocument();
     expect(dialog).not.toBeInTheDocument();
-    expect(dialogBody).not.toBeInTheDocument();
   });
 
   // テキスト選択時のアイコン表示テスト
@@ -95,7 +95,7 @@ describe('コンテントスクリプト', () => {
     (icon as HTMLElement).click();
 
     // ダイアログが表示されたか確認
-    const dialog = document.getElementById('gemini-translate-dialog-body');
+    const dialog = document.getElementById('gemini-translate-dialog');
     expect(dialog).toBeInTheDocument();
 
     // アイコンが削除されたか確認
