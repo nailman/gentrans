@@ -62,6 +62,7 @@ const showTranslateDialog = (text: string) => {
     paddingRight: "30px", // 閉じるボタンのスペース
     paddingLeft: "20px",
     cursor: "move", // カーソルを移動アイコンに
+    color: "#AAA",
   });
 
   // ドラッグ＆ドロップ機能
