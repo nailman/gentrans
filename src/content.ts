@@ -54,6 +54,10 @@ const injectCSS = () => {
       border-top: 1px solid #eee;
       padding-right: 15px;
       padding-bottom: 40px;
+      font-size: 13px;
+    }
+    #gemini-translation-result p {
+      padding: 5px 0 5px 0;
     }
     #gemini-translate-dialog .copy-button {
       position: absolute;
