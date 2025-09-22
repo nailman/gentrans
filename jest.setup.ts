@@ -1,4 +1,5 @@
 /// <reference types="jest" />
+import '@testing-library/jest-dom';
 
 // イベントリスナーを管理するためのヘルパーファクトリ
 const createMockEventListener = () => {
