@@ -1,0 +1,10 @@
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: url('chrome-extension://__MSG_@@extension_id__/public/NotoSansJP-VariableFont_wght.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+#gemini-translate-dialog-body {
+  font-family: 'Noto Sans JP', sans-serif;
+}

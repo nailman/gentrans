@@ -51,7 +51,7 @@ describe("background.tsのテスト", () => {
     (chrome.runtime.onInstalled as any).callListeners();
     expect(chrome.contextMenus.create).toHaveBeenCalledWith({
       id: "translateWithGemini",
-      title: "Geminiで翻訳",
+      title: "GenAIで翻訳",
       contexts: ["selection"],
     });
   });

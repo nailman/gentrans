@@ -25,7 +25,8 @@
         "dist/content.js"
       ],
       "css": [
-        "public/material-icons.css"
+        "public/material-icons.css",
+        "public/style.css"
       ]
     }
   ],
@@ -33,7 +34,8 @@
     {
       "resources": [
         "public/material-icons.css",
-        "public/flUhRq6tzZclQEJ-Vdg-IuiaDsNZ.ttf"
+        "public/flUhRq6tzZclQEJ-Vdg-IuiaDsNZ.ttf",
+        "public/NotoSansJP-VariableFont_wght.ttf"
       ],
       "matches": [
         "<all_urls>"
