@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { ITranslationEngine } from './ITranslationEngine';
 import { TranslationRequest, TranslationSettings } from '../types';
-import { PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL } from '../constants';
+import { DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL } from '../constants';
 import { formatPageContentForModel } from '../utils/translationUtils'; // 追加
 
 export class AzureOpenAITranslationEngine implements ITranslationEngine {
@@ -27,6 +27,7 @@ export class AzureOpenAITranslationEngine implements ITranslationEngine {
       defaultHeaders: { 'api-key': chatgptAzureApiKey },
     });
 
+    // 選択したテキストを翻訳する
     const messages: any[] = [
       { role: "system", content: systemPrompt },
     ];
@@ -45,8 +46,9 @@ export class AzureOpenAITranslationEngine implements ITranslationEngine {
     }
     let translation = translationContent;
 
+    // 固有名詞を翻訳しない場合の処理
     if (doNotTranslateProperNouns && translation) {
-      const restorePrompt = PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
+      const restorePrompt = DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
       const restoreMessages: any[] = [
         { role: "system", content: restorePrompt },
         { role: "user", content: `原文: ${request.text}\n翻訳文: ${translation}` },

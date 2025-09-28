@@ -20,6 +20,8 @@ export interface TranslationSettings {
   systemPrompt: string;
   /** 固有名詞を翻訳しないかどうか */
   doNotTranslateProperNouns: boolean;
+  /** 固有名詞を翻訳させないプロンプト */
+  doNotTranslateProperNounsPrompt: string;
   /** 翻訳精度向上のため、ページ全体のコンテンツを参考情報として含めるかどうか */
   includePageContent: boolean;
 }

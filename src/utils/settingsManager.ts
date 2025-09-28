@@ -1,6 +1,6 @@
 // src/utils/settingsManager.ts
 import { TranslationSettings } from '../types';
-import { DEFAULT_SYSTEM_PROMPT } from '../constants';
+import { DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL, DEFAULT_SYSTEM_PROMPT } from '../constants';
 
 /**
  * 翻訳設定をchrome.storage.localから取得する非同期関数
@@ -18,6 +18,7 @@ export async function getTranslationSettings(): Promise<TranslationSettings> {
       "chatgptAzureApiVersion",
       "systemPrompt",
       "doNotTranslateProperNouns",
+      "doNotTranslateProperNounsPrompt",
       "includePageContent"
     ], resolve);
   });
@@ -33,5 +34,6 @@ export async function getTranslationSettings(): Promise<TranslationSettings> {
     systemPrompt: result.systemPrompt || DEFAULT_SYSTEM_PROMPT, // ここでデフォルト値を適用
     includePageContent: result.includePageContent || false,
     doNotTranslateProperNouns: result.doNotTranslateProperNouns || false,
+    doNotTranslateProperNounsPrompt: result.doNotTranslateProperNounsPrompt || DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL,
   };
 }

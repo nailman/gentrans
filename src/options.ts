@@ -1,4 +1,4 @@
-import { DEFAULT_SYSTEM_PROMPT } from './constants';
+import { DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL, DEFAULT_SYSTEM_PROMPT } from './constants';
 
 const apiKeyInput = document.getElementById("api-key") as HTMLInputElement;
 const saveButton = document.getElementById("save") as HTMLButtonElement;
@@ -21,6 +21,7 @@ const chatgptAzureApiVersionInput = document.getElementById("chatgpt-azure-api-v
 const systemPromptInput = document.getElementById("system-prompt") as HTMLTextAreaElement;
 const resetSystemPromptButton = document.getElementById("reset-system-prompt") as HTMLButtonElement;
 const doNotTranslateProperNounsCheckbox = document.getElementById("do-not-translate-proper-nouns") as HTMLInputElement;
+const doNotTranslateProperNounsPromptInput = document.getElementById("do-not-translate-proper-nouns-prompt") as HTMLTextAreaElement;
 const includePageContentCheckbox = document.getElementById("include-page-content") as HTMLInputElement;
 
 
@@ -53,6 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "chatgptAzureApiVersion",
     "systemPrompt",
     "doNotTranslateProperNouns",
+    "doNotTranslateProperNounsPrompt",
     "includePageContent",
   ], (result) => {
     if (result.geminiApiKey) {
@@ -92,6 +94,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (result.doNotTranslateProperNouns !== undefined) {
       doNotTranslateProperNounsCheckbox.checked = result.doNotTranslateProperNouns;
+    }
+    if (result.doNotTranslateProperNounsPrompt) {
+      doNotTranslateProperNounsPromptInput.value = result.doNotTranslateProperNounsPrompt;
+    } else {
+      doNotTranslateProperNounsPromptInput.value = DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
     }
     if (result.includePageContent !== undefined) {
       includePageContentCheckbox.checked = result.includePageContent;
@@ -156,6 +163,14 @@ saveButton.addEventListener("click", () => {
 
   const doNotTranslateProperNouns = doNotTranslateProperNounsCheckbox.checked;
   settings.doNotTranslateProperNouns = doNotTranslateProperNouns;
+
+  const doNotTranslateProperNounsPrompt = doNotTranslateProperNounsPromptInput.value;
+  if (doNotTranslateProperNounsPrompt !== DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL) {
+    settings.doNotTranslateProperNounsPrompt = doNotTranslateProperNounsPrompt;
+  } else {
+    // デフォルト値の場合はストレージから削除
+    chrome.storage.local.remove("doNotTranslateProperNounsPrompt");
+  }
 
   const includePageContent = includePageContentCheckbox.checked;
   settings.includePageContent = includePageContent;

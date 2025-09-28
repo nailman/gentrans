@@ -40,6 +40,7 @@ describe("background.tsのテスト", () => {
         translationEngine: "gemini",
         systemPrompt: "Test System Prompt",
         doNotTranslateProperNouns: false,
+        doNotTranslateProperNounsPrompt: "Test doNotTranslateProperNounsPrompt",
         includePageContent: false,
       };
       callback(defaults);

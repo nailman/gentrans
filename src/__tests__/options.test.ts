@@ -33,6 +33,7 @@ describe('options.ts', () => {
         chatgptApiKey: 'test-chatgpt-key',
         systemPrompt: 'test-prompt',
         doNotTranslateProperNouns: true,
+        doNotTranslateProperNounsPrompt: 'test-doNotTranslateProperNounsPrompt',
         includePageContent: true,
       };
       (chrome.storage.local.get as jest.Mock).mockImplementation((keys, callback) => {
@@ -51,6 +52,7 @@ describe('options.ts', () => {
       expect((document.getElementById('chatgpt-api-key') as HTMLInputElement).value).toBe(settings.chatgptApiKey);
       expect((document.getElementById('system-prompt') as HTMLTextAreaElement).value).toBe(settings.systemPrompt);
       expect((document.getElementById('do-not-translate-proper-nouns') as HTMLInputElement).checked).toBe(true);
+      expect((document.getElementById('do-not-translate-proper-nouns-prompt') as HTMLTextAreaElement).value).toBe(settings.doNotTranslateProperNounsPrompt);
       expect((document.getElementById('include-page-content') as HTMLInputElement).checked).toBe(true);
     });
 
@@ -80,19 +82,19 @@ describe('options.ts', () => {
     });
 
     it('ChatGPT (Azure)ラジオボタンを選択すると、Azure関連の入力欄が表示されること', () => {
-        require('../options');
-        document.dispatchEvent(new Event('DOMContentLoaded'));
-  
-        const engineChatGPTRadioAzure = document.getElementById('engine-chatgpt-azure') as HTMLInputElement;
-        engineChatGPTRadioAzure.checked = true;
-        engineChatGPTRadioAzure.dispatchEvent(new Event('change'));
-  
-        expect((document.getElementById('chatgpt-api-key-group') as HTMLDivElement).style.display).toBe('none');
-        expect((document.getElementById('chatgpt-azure-api-key-group') as HTMLDivElement).style.display).toBe('block');
-        expect((document.getElementById('chatgpt-azure-endpoint-group') as HTMLDivElement).style.display).toBe('block');
-        expect((document.getElementById('chatgpt-azure-deployment-name-group') as HTMLDivElement).style.display).toBe('block');
-        expect((document.getElementById('chatgpt-azure-api-version-group') as HTMLDivElement).style.display).toBe('block');
-      });
+      require('../options');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+
+      const engineChatGPTRadioAzure = document.getElementById('engine-chatgpt-azure') as HTMLInputElement;
+      engineChatGPTRadioAzure.checked = true;
+      engineChatGPTRadioAzure.dispatchEvent(new Event('change'));
+
+      expect((document.getElementById('chatgpt-api-key-group') as HTMLDivElement).style.display).toBe('none');
+      expect((document.getElementById('chatgpt-azure-api-key-group') as HTMLDivElement).style.display).toBe('block');
+      expect((document.getElementById('chatgpt-azure-endpoint-group') as HTMLDivElement).style.display).toBe('block');
+      expect((document.getElementById('chatgpt-azure-deployment-name-group') as HTMLDivElement).style.display).toBe('block');
+      expect((document.getElementById('chatgpt-azure-api-version-group') as HTMLDivElement).style.display).toBe('block');
+    });
   });
 
   describe('保存処理', () => {
@@ -110,6 +112,7 @@ describe('options.ts', () => {
       (document.getElementById('chatgpt-api-key') as HTMLInputElement).value = 'new-chatgpt-key';
       (document.getElementById('system-prompt') as HTMLTextAreaElement).value = 'new-system-prompt';
       (document.getElementById('do-not-translate-proper-nouns') as HTMLInputElement).checked = true;
+      (document.getElementById('do-not-translate-proper-nouns-prompt') as HTMLTextAreaElement).value = 'new-do-not-translate-proper-nouns-prompt';
       (document.getElementById('include-page-content') as HTMLInputElement).checked = false;
 
 
@@ -124,6 +127,7 @@ describe('options.ts', () => {
           chatgptApiKey: 'new-chatgpt-key',
           systemPrompt: 'new-system-prompt',
           doNotTranslateProperNouns: true,
+          doNotTranslateProperNounsPrompt: 'new-do-not-translate-proper-nouns-prompt',
           includePageContent: false,
         },
         expect.any(Function)
@@ -137,53 +141,53 @@ describe('options.ts', () => {
     });
 
     it('システムプロンプトがデフォルト値の場合、ストレージから削除されること', () => {
-        (chrome.storage.local.set as jest.Mock).mockImplementation((items, callback) => {
-            callback && callback();
-          });
-        (chrome.storage.local.remove as jest.Mock).mockImplementation((keys, callback) => {
-            callback && callback();
-        });
+      (chrome.storage.local.set as jest.Mock).mockImplementation((items, callback) => {
+        callback && callback();
+      });
+      (chrome.storage.local.remove as jest.Mock).mockImplementation((keys, callback) => {
+        callback && callback();
+      });
 
-        require('../options');
-        document.dispatchEvent(new Event('DOMContentLoaded'));
+      require('../options');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
 
-        (document.getElementById('system-prompt') as HTMLTextAreaElement).value = DEFAULT_SYSTEM_PROMPT;
+      (document.getElementById('system-prompt') as HTMLTextAreaElement).value = DEFAULT_SYSTEM_PROMPT;
 
-        const saveButton = document.getElementById('save') as HTMLButtonElement;
-        saveButton.click();
+      const saveButton = document.getElementById('save') as HTMLButtonElement;
+      saveButton.click();
 
-        expect(chrome.storage.local.remove).toHaveBeenCalledWith('systemPrompt');
-        // setが呼ばれるが、systemPromptは含まれない
-        expect(chrome.storage.local.set).toHaveBeenCalledWith(
-            expect.not.objectContaining({ systemPrompt: DEFAULT_SYSTEM_PROMPT }),
-            expect.any(Function)
-        );
+      expect(chrome.storage.local.remove).toHaveBeenCalledWith('systemPrompt');
+      // setが呼ばれるが、systemPromptは含まれない
+      expect(chrome.storage.local.set).toHaveBeenCalledWith(
+        expect.not.objectContaining({ systemPrompt: DEFAULT_SYSTEM_PROMPT }),
+        expect.any(Function)
+      );
     });
   });
 
   describe('リセット処理', () => {
     it('リセットボタンクリックでシステムプロンプトがデフォルトに戻ること', () => {
-        (chrome.storage.local.remove as jest.Mock).mockImplementation((keys, callback) => {
-            callback && callback();
-        });
+      (chrome.storage.local.remove as jest.Mock).mockImplementation((keys, callback) => {
+        callback && callback();
+      });
 
-        require('../options');
-        document.dispatchEvent(new Event('DOMContentLoaded'));
+      require('../options');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
 
-        const systemPromptInput = document.getElementById('system-prompt') as HTMLTextAreaElement;
-        systemPromptInput.value = 'カスタムプロンプト';
+      const systemPromptInput = document.getElementById('system-prompt') as HTMLTextAreaElement;
+      systemPromptInput.value = 'カスタムプロンプト';
 
-        const resetButton = document.getElementById('reset-system-prompt') as HTMLButtonElement;
-        resetButton.click();
+      const resetButton = document.getElementById('reset-system-prompt') as HTMLButtonElement;
+      resetButton.click();
 
-        expect(systemPromptInput.value).toBe(DEFAULT_SYSTEM_PROMPT);
-        expect(chrome.storage.local.remove).toHaveBeenCalledWith('systemPrompt', expect.any(Function));
+      expect(systemPromptInput.value).toBe(DEFAULT_SYSTEM_PROMPT);
+      expect(chrome.storage.local.remove).toHaveBeenCalledWith('systemPrompt', expect.any(Function));
 
-        // ステータスメッセージのテスト
-        const statusDiv = document.getElementById('status') as HTMLDivElement;
-        expect(statusDiv.textContent).toBe('システムプロンプトをデフォルトに戻しました。');
-        jest.runAllTimers();
-        expect(statusDiv.textContent).toBe('');
+      // ステータスメッセージのテスト
+      const statusDiv = document.getElementById('status') as HTMLDivElement;
+      expect(statusDiv.textContent).toBe('システムプロンプトをデフォルトに戻しました。');
+      jest.runAllTimers();
+      expect(statusDiv.textContent).toBe('');
     });
   });
 });

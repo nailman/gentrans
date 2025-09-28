@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { ITranslationEngine } from './ITranslationEngine';
 import { TranslationRequest, TranslationSettings } from '../types';
-import { PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL } from '../constants';
+import { DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL } from '../constants';
 import { formatPageContentForModel } from '../utils/translationUtils'; // 追加
 
 export class GeminiTranslationEngine implements ITranslationEngine {
@@ -33,7 +33,7 @@ export class GeminiTranslationEngine implements ITranslationEngine {
     translation = response.text;
 
     if (doNotTranslateProperNouns && translation) {
-      const restorePrompt = PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
+      const restorePrompt = DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
       const restoreContents: any[] = [
         { text: `原文: ${request.text}\n翻訳文: ${translation}` },
       ];

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>Gemini 翻訳 オプション</title>
@@ -10,14 +11,44 @@
       font-weight: normal;
       font-style: normal;
     }
-    body { font-family: 'Noto Sans JP', sans-serif; padding: 1em; width: 400px; }
-    .form-group { margin-bottom: 1em; }
-    label { display: block; margin-bottom: 0.5em; }
-    input { width: 100%; padding: 0.5em; box-sizing: border-box; }
-    button { padding: 0.7em 1.5em; border: none; background-color: #007bff; color: white; border-radius: 4px; cursor: pointer; }
-    #status { margin-top: 1em; color: green; }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      padding: 1em;
+      width: 400px;
+    }
+
+    .form-group {
+      margin-bottom: 1em;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5em;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.5em;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 0.7em 1.5em;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #status {
+      margin-top: 1em;
+      color: green;
+    }
   </style>
 </head>
+
 <body>
   <h1>Gemini 翻訳 オプション</h1>
   <div class="form-group">
@@ -66,15 +97,21 @@
   <div class="form-group">
     <input type="checkbox" id="do-not-translate-proper-nouns">
     <label for="do-not-translate-proper-nouns">固有名詞を翻訳しない</label>
-  </div>
 
-  <div class="form-group">
-    <input type="checkbox" id="include-page-content">
-    <label for="include-page-content">ページ全体を参考情報に含める</label>
-  </div>
+    <div class="form-group">
+      <label for="do-not-translate-proper-nouns-prompt">固有名詞を戻すプロンプト</label>
+      <textarea id="do-not-translate-proper-nouns-prompt" rows="5" style="width: 100%;"></textarea>
+      <button id="reset-do-not-translate-proper-nouns-prompt">デフォルトに戻す</button>
+    </div>
 
-  <button id="save">保存</button>
-  <div id="status"></div>
-  <script src="../dist/options.js"></script>
+    <div class="form-group">
+      <input type="checkbox" id="include-page-content">
+      <label for="include-page-content">ページ全体を参考情報に含める</label>
+    </div>
+
+    <button id="save">保存</button>
+    <div id="status"></div>
+    <script src="../dist/options.js"></script>
 </body>
+
 </html>
