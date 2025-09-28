@@ -1,5 +1,4 @@
-
-import { DEFAULT_SYSTEM_PROMPT } from '../constants';
+import { DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL, DEFAULT_SYSTEM_PROMPT } from '../constants';
 import fs from 'fs';
 import path from 'path';
 
@@ -186,6 +185,30 @@ describe('options.ts', () => {
       // ステータスメッセージのテスト
       const statusDiv = document.getElementById('status') as HTMLDivElement;
       expect(statusDiv.textContent).toBe('システムプロンプトをデフォルトに戻しました。');
+      jest.runAllTimers();
+      expect(statusDiv.textContent).toBe('');
+    });
+
+    it('リセットボタンクリックで固有名詞を戻すプロンプトがデフォルトに戻ること', () => {
+      (chrome.storage.local.remove as jest.Mock).mockImplementation((keys, callback) => {
+        callback && callback();
+      });
+
+      require('../options');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+
+      const doNotTranslateProperNounsPromptInput = document.getElementById('do-not-translate-proper-nouns-prompt') as HTMLTextAreaElement;
+      doNotTranslateProperNounsPromptInput.value = 'カスタムプロンプト';
+
+      const resetButton = document.getElementById('reset-do-not-translate-proper-nouns-prompt') as HTMLButtonElement;
+      resetButton.click();
+
+      expect(doNotTranslateProperNounsPromptInput.value).toBe(DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL);
+      expect(chrome.storage.local.remove).toHaveBeenCalledWith('doNotTranslateProperNounsPrompt', expect.any(Function));
+
+      // ステータスメッセージのテスト
+      const statusDiv = document.getElementById('status') as HTMLDivElement;
+      expect(statusDiv.textContent).toBe('固有名詞を戻すプロンプトをデフォルトに戻しました。');
       jest.runAllTimers();
       expect(statusDiv.textContent).toBe('');
     });

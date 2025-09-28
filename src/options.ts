@@ -23,6 +23,7 @@ const resetSystemPromptButton = document.getElementById("reset-system-prompt") a
 const doNotTranslateProperNounsCheckbox = document.getElementById("do-not-translate-proper-nouns") as HTMLInputElement;
 const doNotTranslateProperNounsPromptInput = document.getElementById("do-not-translate-proper-nouns-prompt") as HTMLTextAreaElement;
 const includePageContentCheckbox = document.getElementById("include-page-content") as HTMLInputElement;
+const resetDoNotTranslateProperNounsPromptButton = document.getElementById("reset-do-not-translate-proper-nouns-prompt") as HTMLButtonElement;
 
 
 function updateChatGPTOptionsVisibility() {
@@ -187,6 +188,16 @@ resetSystemPromptButton.addEventListener("click", () => {
   systemPromptInput.value = DEFAULT_SYSTEM_PROMPT;
   chrome.storage.local.remove("systemPrompt", () => {
     statusDiv.textContent = "システムプロンプトをデフォルトに戻しました。";
+    setTimeout(() => {
+      statusDiv.textContent = "";
+    }, 2000);
+  });
+});
+
+resetDoNotTranslateProperNounsPromptButton.addEventListener("click", () => {
+  doNotTranslateProperNounsPromptInput.value = DEFAULT_PROMPT_RESTORE_PROPER_NOUNS_TO_ORIGINAL;
+  chrome.storage.local.remove("doNotTranslateProperNounsPrompt", () => {
+    statusDiv.textContent = "固有名詞を戻すプロンプトをデフォルトに戻しました。";
     setTimeout(() => {
       statusDiv.textContent = "";
     }, 2000);
