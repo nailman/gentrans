@@ -84,6 +84,11 @@ Object.defineProperty(global.chrome.storage, "local", {
       Object.assign(mockStorage, items);
       callback && callback();
     }),
+    remove: jest.fn((keys: string | string[], callback?: () => void) => {
+      const keysToRemove = Array.isArray(keys) ? keys : [keys];
+      keysToRemove.forEach(key => delete mockStorage[key]);
+      callback && callback();
+    }),
     clear: jest.fn((callback?: () => void) => {
       mockStorage = {}; // ストレージをクリア
       callback && callback();
